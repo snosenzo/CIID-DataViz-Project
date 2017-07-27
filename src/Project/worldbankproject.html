@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <script src="libs/d3.v4.min.js"></script>
+    <style>
+        body { margin:0;}
+
+    </style>
+</head>
+
+<body>
+<script>
+
+  var colorMap = {
+    'Sub-Saharan Africa': 'green',
+    'North America': 'blue',
+    'Europe & Central Asia': 'pink',
+    'Latin America & Caribbean': 'purple',
+    'Middle East & North Africa': 'orange',
+    'South Asia': 'yellow',
+    'East Asia & Pacific': 'red'
+  };
+
+  var width = window.innerWidth * 100;
+  var height = window.innerHeight;
+  var minVal = 0;
+  var maxVal = 0;
+  var minValGDP = 0;
+  var maxValGDP = 0;
+  var minYear = 0;
+  var maxYear = 0;
+  var currentYear = 0;
+  console.log(window);
+  var svg = d3.select("body").append("svg")
+    .attr('height', height)
+    .attr('width', width);
+
+  var data = "data/forestArea.csv";
+
+  function parseDataEnergy(dataset) {
+
+    var countriesData = d3.nest()
+      .key(function(d){
+        return d.CountryCode;
+      })
+      .rollup(function(d) {
+        var dmap = d3.map(d[0]).entries();
+
+        var years = d3.map();
+        var meta = d3.map();
+
+        for (var i = 0; i < dmap.length; i++) {
+          if (!isNaN(parseInt(dmap[i].key))) {
+            years.set(dmap[i].key, dmap[i].value);
+          } else {
+            meta.set(dmap[i].key, dmap[i].value);
+          }
+        }
+
+        minYear = d3.min(years.entries().filter(function(d, i) {
+          return d.value != '';
+        }).map(function(d, i) {
+          return parseInt(d.key);
+        }));
+
+        maxYear = d3.max(years.keys());
+
+        if(maxVal < d3.max(years.values())){
+          maxVal = d3.max(years.values(), function(d) {
+            return parseFloat(d);
+          });
+        }
+
+        return {
+          'years': years,
+          'meta': meta
+        }
+      })
+      .entries(dataset);
+
+    return countriesData;
+  }
+
+  function parseDataGDP(dataset) {
+
+    var countriesData = d3.nest()
+      .key(function(d){
+        return d.CountryCode;
+      })
+      .rollup(function(d){
+        var dmap = d3.map(d[0]).entries();
+
+        var years = d3.map();
+        var meta = d3.map();
+
+        for (var i = 0; i < dmap.length; i++) {
+          if (!isNaN(parseInt(dmap[i].key))) {
+            years.set(dmap[i].key, dmap[i].value);
+          } else {
+            meta.set(dmap[i].key, dmap[i].value);
+          }
+        }
+
+        if(maxValGDP < d3.max(years.values())){
+          maxValGDP = d3.max(years.values(), function(d) {
+            return parseFloat(d);
+          });
+        }
+
+        return {
+          'years': years,
+          'meta': meta
+        }
+      })
+      .entries(dataset);
+
+    return countriesData;
+  }
+
+  var filePathGDP = './data/gdpdata/gdpdataregion.csv';
+  var filePathEnergy = './data/renewableenergy/energydata.csv';
+
+
+
+  d3.csv(filePathGDP, function(err1, gdpDataRaw)
+      {
+        d3.csv(filePathEnergy, function(err2, energyDataRaw)
+        {
+          var gdpData = parseDataGDP(gdpDataRaw);
+
+          var energyData = parseDataEnergy(energyDataRaw);
+          currentYear = '2013';
+
+          //console.log(gdpData);
+
+          var rScale = d3.scaleLinear()
+            .domain([minVal, maxVal])
+            .range([1, 25]);
+
+//          var yScale = d3.scaleLinear()
+//            .domain([0, gdpData.length])
+//            .range([30, height - 30]);
+
+          var xScale = d3.scaleLinear()
+            .domain([minValGDP, maxValGDP])
+            .range([50, width-50]);
+          console.log(gdpData);
+          console.log(energyData);
+
+          var countries = svg.selectAll('circle')
+            .data(energyData)
+            .enter()
+            .append('g')
+            .attr('id', function (d) {
+              return d.value.meta.get('CountryName');
+            })
+            .attr('class', 'country')
+            .append('circle')
+            .attr('r', function (d, i) {
+              var value = parseFloat(d.value.years.get(currentYear) || 0);
+              return rScale(value);
+            })
+            .attr('cx', function (d, i) {
+              var gdpVal = gdpData[i].value.years.get(currentYear);
+
+              return xScale(parseFloat(gdpVal || 0));
+            })
+            .attr('cy', height/2)
+            .attr('opacity', .2)
+            .attr('fill', function(d, i) {
+
+              var color = colorMap[gdpData[i].value.meta.get('Region')] || 'gray';
+              return color;
+            });
+
+          var axis = d3.axisBottom(
+                d3.scaleLinear()
+                  .domain([minValGDP, maxValGDP])
+                  .range([minValGDP, maxValGDP])
+                )
+                .ticks(100);
+
+          svg.append('g')
+            .call(axis)
+            .attr('transform', 'translate(' + 50 +  ',' + height/2 + ')');
+        });
+      });
+
+    </script>
+  </body>
+</html>
