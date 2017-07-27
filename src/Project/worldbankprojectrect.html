@@ -9,7 +9,15 @@
     <meta charset="utf-8">
     <script src="libs/d3.v4.min.js"></script>
     <style>
-        body { margin:0; transition: 2s}
+        body {
+            margin:0;
+            font: 12px 'Helvetica';
+            overflow-y: hidden;
+        }
+        .legend-item {
+            position: fixed;
+            right: 0;
+        }
 
     </style>
 </head>
@@ -20,7 +28,7 @@
   var colorMap = {
     'Sub-Saharan Africa': 'green',
     'North America': 'blue',
-    'Europe & Central Asia': 'pink',
+    'Europe & Central Asia': 'turquoise',
     'Latin America & Caribbean': 'purple',
     'Middle East & North Africa': 'orange',
     'South Asia': 'yellow',
@@ -29,6 +37,7 @@
 
   var width = window.innerWidth * 4;
   var height = window.innerHeight;
+  var offsetFromTop = 30;
   var minVal = 0;
   var maxVal = 0;
   var minValGDP = 0;
@@ -150,6 +159,7 @@
       var xScale = d3.scaleLinear()
         .domain([minValGDP, maxValGDP])
         .range([50, width-50]);
+
       console.log(gdpData);
       console.log(energyData);
 
@@ -161,7 +171,30 @@
           return d.value.meta.get('CountryName');
         })
         .attr('class', 'country');
-       rects = countries.append('rect')
+
+
+      var text = countries.append('text')
+        .attr('id', function(d, i) {
+          return d.key;
+        })
+        .attr('text-anchor', 'left')
+        .attr('transform', function(d, i) {
+          // the y value
+          var barLength = hScale(parseFloat(d.value.years.get(currentYear) || 0));
+          var yLoc = offsetFromTop + barLength ;
+
+          // The x value
+          var gdpVal = gdpData[i].value.years.get(currentYear);
+          var xLoc = xScale(parseFloat(gdpVal || 0)) + 10;
+
+          return 'translate(' + xLoc + ', ' + yLoc + ')';
+        })
+        .text(function(d) {
+          return d.value.meta.get('CountryName');
+        })
+        .attr('opacity', 0);
+
+      var rects = countries.append('rect')
         .attr('height', function (d, i) {
           var value = parseFloat(d.value.years.get(currentYear) || 0);
           return hScale(value);
@@ -171,27 +204,35 @@
           var gdpVal = gdpData[i].value.years.get(currentYear);
           return xScale(parseFloat(gdpVal || 0));
         })
-        .attr('y', 10)
-        .attr('opacity', .5)
+        .attr('y', offsetFromTop)
+        .attr('opacity', .2)
         .attr('fill', function(d, i) {
 
           var color = colorMap[gdpData[i].value.meta.get('Region')] || 'gray';
           return color;
         })
         .attr('transition', '1s')
-        .on('mouseover', function() {
+        .on('mouseover', function(d) {
           //d3.select(this);
+          svg.selectAll('#' + d.key)
+            .transition()
+            .duration(200)
+            .attr('opacity', 1);
           d3.select(this)
             .transition()
             .duration(200)
             .attr('opacity', 1);
 
         })
-        .on('mouseleave', function() {
+        .on('mouseleave', function(d) {
+          svg.selectAll('#' + d.key)
+            .transition()
+            .duration(200)
+            .attr('opacity', 0);
           d3.select(this)
             .transition()
             .duration(200)
-            .attr('opacity', .5);
+            .attr('opacity', .3);
         });
 
       var axisScale = d3.scaleLinear()
@@ -203,15 +244,54 @@
 
       svg.append('g')
         .call(axis)
-        .attr('transform', 'translate(0 , 10)');
+        .attr('transform', 'translate(0 ,' + offsetFromTop + ')');
 
       svg.append('text')
         .attr('text-anchor', 'left')
-        .attr('transform', 'translate(5, 20)')
+        .attr('transform', 'translate(5, ' + (offsetFromTop + 10) + ')')
         .text('GDP');
+
+      var legendItems = svg.selectAll('.legend-items')
+        .append('g')
+        .classed('legend-items', true)
+        .data(d3.map(colorMap).entries())
+        .enter()
+        .append('g')
+        .classed('legend-item', true)
+        .attr('position', 'fixed')
+        .attr('right', '0px');
+      legendItems.append('rect')
+        .attr('height', 7)
+        .attr('width', 7)
+        .attr('x', function(d, i) {
+          return window.innerWidth - 160;
+        })
+        .attr('y', function(d, i) {
+          return height/2 - 8+ (i * 20)
+        })
+        .attr('fill', function(d, i) {
+          return d.value;
+        });
+      legendItems.append('text')
+        .text(function(d, i) {
+          console.log(d.key);
+          return d.key;
+        })
+        .attr('transform', function(d, i) {
+          var x = window.innerWidth -150;
+          var y = height/2 + i * 20;
+          return 'translate(' + x + ', ' + y + ')';
+        });
+
+
+//        .attr('dx', width - 100)
+//        .attr('dy', function(d, i) {
+//          return height/2 + (i * 20);
+//        });
+
+
     });
   });
-  window.eventListener
 
 </script>
 </body>
