@@ -12,11 +12,28 @@
         body {
             margin:0;
             font: 12px 'Helvetica';
-            overflow-y: hidden;
+
         }
         .legend-item {
             position: fixed;
             right: 0;
+        }
+        .track {
+            stroke: #000;
+            stroke-opacity: 0.3;
+            stroke-width: 10px;
+        }
+
+        .track-inset {
+            stroke: #ddd;
+            stroke-width: 8px;
+        }
+
+        .track-overlay {
+            pointer-events: stroke;
+            stroke-width: 50px;
+            stroke: transparent;
+            cursor: crosshair;
         }
 
     </style>
@@ -45,10 +62,13 @@
   var minYear = 0;
   var maxYear = 0;
   var currentYear = 0;
-  console.log(window);
+
+
+
   var svg = d3.select("body").append("svg")
     .attr('height', height)
     .attr('width', width);
+
 
   var data = "data/forestArea.csv";
 
@@ -150,7 +170,7 @@
 
       var hScale = d3.scaleLinear()
         .domain([minVal, maxVal])
-        .range([1, height]);
+        .range([1, height - offsetFromTop]);
 
 //          var yScale = d3.scaleLinear()
 //            .domain([0, gdpData.length])
@@ -199,7 +219,7 @@
           var value = parseFloat(d.value.years.get(currentYear) || 0);
           return hScale(value);
         })
-        .attr('width', 5)
+        .attr('width', 2)
         .attr('x', function (d, i) {
           var gdpVal = gdpData[i].value.years.get(currentYear);
           return xScale(parseFloat(gdpVal || 0));
@@ -239,8 +259,8 @@
         .domain([minValGDP, maxValGDP])
         .range([50, width-50]);
 
-      var axis = d3.axisBottom(axisScale)
-        .ticks(100);
+      var axis = d3.axisTop(axisScale)
+        .ticks(50);
 
       svg.append('g')
         .call(axis)
@@ -251,6 +271,10 @@
         .attr('transform', 'translate(5, ' + (offsetFromTop + 10) + ')')
         .text('GDP');
 
+//      var legendBox = svg.selectAll('.legend-box')
+//        .append('rect').classed('legend-box', true);
+
+      // Sets up the legend group and properties
       var legendItems = svg.selectAll('.legend-items')
         .append('g')
         .classed('legend-items', true)
@@ -260,6 +284,7 @@
         .classed('legend-item', true)
         .attr('position', 'fixed')
         .attr('right', '0px');
+      // Adds the color blocks to the legend
       legendItems.append('rect')
         .attr('height', 7)
         .attr('width', 7)
@@ -272,16 +297,96 @@
         .attr('fill', function(d, i) {
           return d.value;
         });
+
+      // Add the text to the legend
       legendItems.append('text')
         .text(function(d, i) {
-          console.log(d.key);
           return d.key;
         })
         .attr('transform', function(d, i) {
-          var x = window.innerWidth -150;
+          var x = window.innerWidth - 150;
           var y = height/2 + i * 20;
           return 'translate(' + x + ', ' + y + ')';
         });
+
+      function redrawData() {
+        console.log(currentYear);
+        text.transition()
+          .duration(500)
+          .attr('transform', function(d, i) {
+            // the y value
+            var barLength = hScale(parseFloat(d.value.years.get(currentYear) || 0));
+            var yLoc = offsetFromTop + barLength ;
+
+            // The x value
+            var gdpVal = gdpData[i].value.years.get(currentYear);
+            var xLoc = xScale(parseFloat(gdpVal || 0)) + 10;
+            return 'translate(' + xLoc + ', ' + yLoc + ')';
+          });
+
+        rects.transition()
+          .duration(500)
+          .attr('height', function (d, i) {
+            var value = parseFloat(d.value.years.get(currentYear) || 0);
+            return hScale(value);
+          })
+          .attr('x', function (d, i) {
+            var gdpVal = gdpData[i].value.years.get(currentYear);
+            return xScale(parseFloat(gdpVal || 0));
+          });
+      }
+
+      var sliderScale = d3.scaleLinear()
+        .domain([minYear, parseInt(maxYear) + 1])
+        .range([0, 180])
+        .clamp(true);
+      // year slider
+      var slider = svg.append("g")
+        .attr("class", "slider")
+        .attr("transform", "translate(" + window.innerWidth + "," + (height / 2 - 10) + ")");
+
+      slider.append("line")
+        .attr("class", "track")
+        .attr("x1", sliderScale.range()[0])
+        .attr("x2", sliderScale.range()[1])
+        .select(function() { return this.parentNode.appendChild(this.cloneNode(true)); })
+        .attr("class", "track-inset")
+        .select(function() { return this.parentNode.appendChild(this.cloneNode(true)); })
+        .attr("class", "track-overlay")
+        .call(d3.drag()
+          .on("start.interrupt", function() { slider.interrupt(); })
+          .on("start drag", function() { yearChange(sliderScale.invert(d3.event.x)); }));
+
+      slider.insert("g", ".track-overlay")
+        .attr("class", "ticks")
+        .attr("transform", "translate(0," + 18 + ")")
+        .selectAll("text")
+        .data(sliderScale.ticks(2))
+        .enter().append("text")
+        .attr("x", sliderScale)
+        .attr("text-anchor", "middle")
+        .text(function(d) { return d });
+
+      var handle = slider.insert("circle", ".track-overlay")
+        .attr("class", "handle")
+        .attr("r", 9);
+
+      slider.transition() // Gratuitous intro!
+        .duration(750)
+        .tween("hue", function() {
+          var i = d3.interpolate(0, 70);
+          return function(t) {
+//            console.log('t: ' + t);
+//            currentYear = Math.floor(sliderScale(t));
+//            console.log('currentYear: ' + currentYear);
+          };
+        });
+      function yearChange(sliderLoc) {
+        console.log(sliderLoc);
+        currentYear = Math.floor(sliderLoc);
+        redrawData();
+
+      }
 
 
 //        .attr('dx', width - 100)
@@ -294,9 +399,5 @@
   });
 
 </script>
-</body>
-</html>
-
-
 </body>
 </html>
