@@ -1,10 +1,4 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body><!DOCTYPE html>
 <head>
     <meta charset="utf-8">
     <script src="libs/d3.v4.min.js"></script>
@@ -12,11 +6,13 @@
         body {
             margin:0;
             font: 12px 'Helvetica';
+            position: relative;
 
         }
-        .legend-item {
+        .legend {
             position: fixed;
             right: 0;
+            bottom: 0;
         }
         .track {
             stroke: #000;
@@ -40,6 +36,7 @@
 </head>
 
 <body>
+    <div class="legend"></div>
 <script>
 
   var colorMap = {
@@ -68,6 +65,9 @@
   var svg = d3.select("body").append("svg")
     .attr('height', height)
     .attr('width', width);
+  var svgLegend = d3.select(".legend").append('svg')
+    .attr('height', 200)
+    .attr('width', 250);
 
 
   var data = "data/forestArea.csv";
@@ -275,24 +275,24 @@
 //        .append('rect').classed('legend-box', true);
 
       // Sets up the legend group and properties
-      var legendItems = svg.selectAll('.legend-items')
+      var legendItems = svgLegend.selectAll('.legend-items')
         .append('g')
-        .classed('legend-items', true)
+        .attr('class', 'legend-items')
         .data(d3.map(colorMap).entries())
         .enter()
         .append('g')
-        .classed('legend-item', true)
-        .attr('position', 'fixed')
-        .attr('right', '0px');
+        .attr('class', 'legend-item');
+//        .attr('position', 'fixed')
+//        .attr('right', '0px');
       // Adds the color blocks to the legend
       legendItems.append('rect')
         .attr('height', 7)
         .attr('width', 7)
         .attr('x', function(d, i) {
-          return window.innerWidth - 160;
+          return  20;
         })
         .attr('y', function(d, i) {
-          return height/2 - 8+ (i * 20)
+          return 40 + (i * 20)
         })
         .attr('fill', function(d, i) {
           return d.value;
@@ -303,10 +303,9 @@
         .text(function(d, i) {
           return d.key;
         })
-        .attr('transform', function(d, i) {
-          var x = window.innerWidth - 150;
-          var y = height/2 + i * 20;
-          return 'translate(' + x + ', ' + y + ')';
+        .attr('dx', 30)
+        .attr('dy', function(d, i) {
+          return 48 + (i * 20);
         });
 
       function redrawData() {
@@ -341,9 +340,9 @@
         .range([0, 180])
         .clamp(true);
       // year slider
-      var slider = svg.append("g")
+      var slider = svgLegend.append("g")
         .attr("class", "slider")
-        .attr("transform", "translate(" + window.innerWidth + "," + (height / 2 - 10) + ")");
+        .attr("transform", "translate( 20, 10)");
 
       slider.append("line")
         .attr("class", "track")
@@ -366,10 +365,6 @@
         .attr("x", sliderScale)
         .attr("text-anchor", "middle")
         .text(function(d) { return d });
-
-      var handle = slider.insert("circle", ".track-overlay")
-        .attr("class", "handle")
-        .attr("r", 9);
 
       slider.transition() // Gratuitous intro!
         .duration(750)
