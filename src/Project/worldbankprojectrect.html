@@ -7,6 +7,7 @@
             margin:0;
             font: 12px 'Helvetica';
             position: relative;
+            overflow-y: hidden;
 
         }
         .legend {
@@ -51,7 +52,7 @@
 
   var width = window.innerWidth * 4;
   var height = window.innerHeight;
-  var offsetFromTop = 30;
+  var offsetFromTop = 100;
   var minVal = 0;
   var maxVal = 0;
   var minValGDP = 0;
@@ -63,10 +64,10 @@
 
 
   var svg = d3.select("body").append("svg")
-    .attr('height', height)
+    .attr('height', height+10)
     .attr('width', width);
   var svgLegend = d3.select(".legend").append('svg')
-    .attr('height', 200)
+    .attr('height', 220)
     .attr('width', 250);
 
 
@@ -225,7 +226,7 @@
           return xScale(parseFloat(gdpVal || 0));
         })
         .attr('y', offsetFromTop)
-        .attr('opacity', .2)
+        .attr('opacity', .4)
         .attr('fill', function(d, i) {
 
           var color = colorMap[gdpData[i].value.meta.get('Region')] || 'gray';
@@ -252,7 +253,7 @@
           d3.select(this)
             .transition()
             .duration(200)
-            .attr('opacity', .3);
+            .attr('opacity', .4);
         });
 
       var axisScale = d3.scaleLinear()
@@ -268,9 +269,37 @@
 
       svg.append('text')
         .attr('text-anchor', 'left')
-        .attr('transform', 'translate(5, ' + (offsetFromTop + 10) + ')')
-        .text('GDP');
+        .attr('font-size', '16px')
+        .attr('transform', 'translate(100, ' + (offsetFromTop-30) + ')')
+        .text('GDP (USD per capita)');
 
+      svg.append('text')
+        .attr('text-anchor', 'left')
+        .attr('font-size', 30)
+        .attr('text-decoration', 'underline')
+        .attr('font-weight', 'bold')
+        .attr('y', 30)
+        .attr('x', 50)
+        .text('Renewable Energy (% of Total Energy Use) vs. GDP per capita (current USD) ');
+
+      var yAxisScale = d3.scaleLinear()
+        .domain([0, maxVal])
+        .range([50, height-50]);
+
+      var yAxis = d3.axisLeft(yAxisScale)
+        .ticks(20);
+
+      svg.append('g')
+        .call(yAxis)
+        .attr('transform', 'translate(' + 50 +  ','+ (offsetFromTop-50) + ')');
+
+      svg.append('text')
+        .attr('text-anchor', 'middle')
+        .attr('transform', 'rotate(-90)')
+        .attr('x', -height/2)
+        .attr('y', 20)
+        .attr('font-size', '16px')
+        .text('Renewable Energy Percentage (%)');
 //      var legendBox = svg.selectAll('.legend-box')
 //        .append('rect').classed('legend-box', true);
 
@@ -292,7 +321,7 @@
           return  20;
         })
         .attr('y', function(d, i) {
-          return 40 + (i * 20)
+          return 70 + (i * 20)
         })
         .attr('fill', function(d, i) {
           return d.value;
@@ -305,8 +334,15 @@
         })
         .attr('dx', 30)
         .attr('dy', function(d, i) {
-          return 48 + (i * 20);
+          return 78 + (i * 20);
         });
+
+      var yearText = svgLegend.append('text')
+        .attr('text-anchor', 'middle')
+        .attr('font-weight', 'bold')
+        .attr('x', 100)
+        .attr('dy', 20)
+        .text('Current year: ' + currentYear);
 
       function redrawData() {
         console.log(currentYear);
@@ -333,6 +369,7 @@
             var gdpVal = gdpData[i].value.years.get(currentYear);
             return xScale(parseFloat(gdpVal || 0));
           });
+        yearText.text('Current year: ' + currentYear);
       }
 
       var sliderScale = d3.scaleLinear()
@@ -342,7 +379,7 @@
       // year slider
       var slider = svgLegend.append("g")
         .attr("class", "slider")
-        .attr("transform", "translate( 20, 10)");
+        .attr("transform", "translate( 20, 40)");
 
       slider.append("line")
         .attr("class", "track")
@@ -380,8 +417,15 @@
         console.log(sliderLoc);
         currentYear = Math.floor(sliderLoc);
         redrawData();
-
       }
+
+      var year = svgLegend.append('text')
+        .attr('text-anchor', 'middle')
+        .attr('font-weight', 'bold')
+        .attr('x', 100)
+        .attr('dy', 20)
+        .text('Current year: ' + currentYear);
+
 
 
 //        .attr('dx', width - 100)
