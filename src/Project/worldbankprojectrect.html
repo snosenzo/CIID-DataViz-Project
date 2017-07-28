@@ -32,6 +32,9 @@
             stroke: transparent;
             cursor: crosshair;
         }
+        text {
+            pointer-events: none;
+        }
 
     </style>
 </head>
@@ -194,8 +197,8 @@
         .attr('class', 'country');
 
 
-      var text = countries.append('text')
-        .attr('id', function(d, i) {
+      var countryNames = countries.append('text')
+        .attr('class', function(d, i) {
           return d.key;
         })
         .attr('text-anchor', 'left')
@@ -215,12 +218,33 @@
         })
         .attr('opacity', 0);
 
+      var countryRenewInfo = countries.append('text')
+        .attr('class', function(d, i) {
+          return d.key;
+        })
+        .attr('text-anchor', 'left')
+        .attr('transform', function(d, i) {
+          // the y value
+          var barLength = hScale(parseFloat(d.value.years.get(currentYear) || 0));
+          var yLoc = offsetFromTop + barLength + 13 ;
+
+          // The x value
+          var gdpVal = gdpData[i].value.years.get(currentYear);
+          var xLoc = xScale(parseFloat(gdpVal || 0)) + 10;
+
+          return 'translate(' + xLoc + ', ' + yLoc + ')';
+        })
+        .text(function(d) {
+          return d.value.years.get(currentYear).slice(0, 5) + '%';
+        })
+        .attr('opacity', 0);
+
       var rects = countries.append('rect')
         .attr('height', function (d, i) {
           var value = parseFloat(d.value.years.get(currentYear) || 0);
           return hScale(value);
         })
-        .attr('width', 2)
+        .attr('width', 4)
         .attr('x', function (d, i) {
           var gdpVal = gdpData[i].value.years.get(currentYear);
           return xScale(parseFloat(gdpVal || 0));
@@ -235,7 +259,7 @@
         .attr('transition', '1s')
         .on('mouseover', function(d) {
           //d3.select(this);
-          svg.selectAll('#' + d.key)
+          svg.selectAll('.' + d.key)
             .transition()
             .duration(200)
             .attr('opacity', 1);
@@ -246,7 +270,7 @@
 
         })
         .on('mouseleave', function(d) {
-          svg.selectAll('#' + d.key)
+          svg.selectAll('.' + d.key)
             .transition()
             .duration(200)
             .attr('opacity', 0);
@@ -275,12 +299,12 @@
 
       svg.append('text')
         .attr('text-anchor', 'left')
-        .attr('font-size', 30)
+        .attr('font-size', 36)
         .attr('text-decoration', 'underline')
         .attr('font-weight', 'bold')
-        .attr('y', 30)
-        .attr('x', 50)
-        .text('Renewable Energy (% of Total Energy Use) vs. GDP per capita (current USD) ');
+        .attr('y', 35)
+        .attr('x', 10)
+        .text('Renewable Energy (% of Total Energy Use) vs. GDP per capita (USD) ');
 
       var yAxisScale = d3.scaleLinear()
         .domain([0, maxVal])
@@ -339,14 +363,14 @@
 
       var yearText = svgLegend.append('text')
         .attr('text-anchor', 'middle')
-        .attr('font-weight', 'bold')
+//        .attr('font-weight', 'bold')
         .attr('x', 100)
-        .attr('dy', 20)
-        .text('Current year: ' + currentYear);
+        .attr('dy', 20);
+      yearText.text('Current year: ' + currentYear);
 
       function redrawData() {
         console.log(currentYear);
-        text.transition()
+        countryNames.transition()
           .duration(500)
           .attr('transform', function(d, i) {
             // the y value
@@ -357,6 +381,21 @@
             var gdpVal = gdpData[i].value.years.get(currentYear);
             var xLoc = xScale(parseFloat(gdpVal || 0)) + 10;
             return 'translate(' + xLoc + ', ' + yLoc + ')';
+          });
+        countryRenewInfo.transition()
+          .duration(500)
+          .attr('transform', function(d, i) {
+              // the y value
+              var barLength = hScale(parseFloat(d.value.years.get(currentYear) || 0));
+              var yLoc = offsetFromTop + barLength + 13;
+
+              // The x value
+              var gdpVal = gdpData[i].value.years.get(currentYear);
+              var xLoc = xScale(parseFloat(gdpVal || 0)) + 10;
+              return 'translate(' + xLoc + ', ' + yLoc + ')';
+            })
+          .text(function(d) {
+            return  d.value.years.get(currentYear).slice(0, 5) + '%';
           });
 
         rects.transition()
@@ -418,14 +457,6 @@
         currentYear = Math.floor(sliderLoc);
         redrawData();
       }
-
-      var year = svgLegend.append('text')
-        .attr('text-anchor', 'middle')
-        .attr('font-weight', 'bold')
-        .attr('x', 100)
-        .attr('dy', 20)
-        .text('Current year: ' + currentYear);
-
 
 
 //        .attr('dx', width - 100)
